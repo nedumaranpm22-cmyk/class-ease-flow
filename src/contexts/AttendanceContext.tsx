@@ -41,7 +41,9 @@ interface AttendanceContextType {
   updateSubjectPeriods: (semesterId: string, subjectId: string, totalPeriods: number) => void;
   getStudentWeeklyAttendance: (studentId: string, semesterId: string, weekStart: string) => number;
   addSemester: (semester: Omit<Semester, 'id'>) => void;
+  updateSemester: (semesterId: string, updates: Partial<Omit<Semester, 'id'>>) => void;
   getActiveSemester: () => Semester | null;
+  isPeriodSubmitted: (semesterId: string, subjectId: string, periodNumber: number) => boolean;
 }
 
 const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
@@ -129,6 +131,12 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setSemesters((prev) => [...prev, newSemester]);
   };
 
+  const updateSemester = (semesterId: string, updates: Partial<Omit<Semester, 'id'>>) => {
+    setSemesters((prev) =>
+      prev.map((sem) => (sem.id === semesterId ? { ...sem, ...updates } : sem))
+    );
+  };
+
   const getActiveSemester = (): Semester | null => {
     const now = new Date();
     return semesters.find((sem) => {
@@ -136,6 +144,15 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const end = new Date(sem.endDate);
       return now >= start && now <= end;
     }) || semesters[0] || null;
+  };
+
+  const isPeriodSubmitted = (semesterId: string, subjectId: string, periodNumber: number): boolean => {
+    return attendance.some(
+      (record) =>
+        record.semesterId === semesterId &&
+        record.subjectId === subjectId &&
+        record.periodNumber === periodNumber
+    );
   };
 
   return (
@@ -148,7 +165,9 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         updateSubjectPeriods,
         getStudentWeeklyAttendance,
         addSemester,
+        updateSemester,
         getActiveSemester,
+        isPeriodSubmitted,
       }}
     >
       {children}

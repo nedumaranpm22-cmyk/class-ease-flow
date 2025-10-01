@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, UserCircle, Shield } from 'lucide-react';
 
 export const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'faculty' | 'admin'>('faculty');
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -34,7 +35,7 @@ export const LoginForm = () => {
             <GraduationCap className="w-10 h-10 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-3xl font-bold">College Attendance</CardTitle>
+            <CardTitle className="text-3xl font-bold">RollX</CardTitle>
             <CardDescription className="text-base mt-2">
               Sign in to manage and track attendance
             </CardDescription>
@@ -54,6 +55,31 @@ export const LoginForm = () => {
                 className="h-11"
               />
             </div>
+            
+            <div className="space-y-2">
+              <Label>Select Role</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant={selectedRole === 'faculty' ? 'default' : 'outline'}
+                  className="h-12 flex items-center gap-2"
+                  onClick={() => setSelectedRole('faculty')}
+                >
+                  <UserCircle className="w-5 h-5" />
+                  Faculty
+                </Button>
+                <Button
+                  type="button"
+                  variant={selectedRole === 'admin' ? 'default' : 'outline'}
+                  className="h-12 flex items-center gap-2"
+                  onClick={() => setSelectedRole('admin')}
+                >
+                  <Shield className="w-5 h-5" />
+                  Admin
+                </Button>
+              </div>
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input

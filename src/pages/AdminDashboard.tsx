@@ -12,9 +12,10 @@ import { toast } from 'sonner';
 import { MOCK_FACULTIES, MOCK_SUBJECTS } from '@/data/mockData';
 
 export default function AdminDashboard() {
-  const { semesters, addSemester, students, attendance, getActiveSemester } = useAttendance();
+  const { semesters, addSemester, updateSemester, students, attendance, getActiveSemester } = useAttendance();
   const [selectedSemester, setSelectedSemester] = useState<string>('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingSemesterId, setEditingSemesterId] = useState<string | null>(null);
   
   // Form state
   const [newSemesterName, setNewSemesterName] = useState('');
@@ -56,18 +57,44 @@ export default function AdminDashboard() {
       };
     });
 
-    addSemester({
-      name: newSemesterName,
-      startDate,
-      endDate,
-      subjects,
-    });
+    if (editingSemesterId) {
+      updateSemester(editingSemesterId, {
+        name: newSemesterName,
+        startDate,
+        endDate,
+        subjects,
+      });
+      toast.success('Semester updated successfully!');
+      setEditingSemesterId(null);
+    } else {
+      addSemester({
+        name: newSemesterName,
+        startDate,
+        endDate,
+        subjects,
+      });
+      toast.success('Semester created successfully!');
+    }
 
-    toast.success('Semester created successfully!');
     setShowCreateForm(false);
     setNewSemesterName('');
     setStartDate('');
     setEndDate('');
+  };
+
+  const handleEditSemester = (semester: any) => {
+    setEditingSemesterId(semester.id);
+    setNewSemesterName(semester.name);
+    setStartDate(semester.startDate);
+    setEndDate(semester.endDate);
+    setNumSubjects(semester.subjects.length);
+    setSubjectAssignments(
+      semester.subjects.map((sub: any) => ({
+        name: sub.name,
+        facultyId: sub.facultyId,
+      }))
+    );
+    setShowCreateForm(true);
   };
 
   // Calculate statistics
@@ -126,17 +153,41 @@ export default function AdminDashboard() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full sm:w-auto">
-            {showCreateForm ? 'Cancel' : 'Create Semester'}
-          </Button>
+          <div className="flex gap-2">
+            {currentSemester && (
+              <Button 
+                variant="outline" 
+                onClick={() => handleEditSemester(currentSemester)}
+                className="w-full sm:w-auto"
+              >
+                Edit Semester
+              </Button>
+            )}
+            <Button 
+              onClick={() => {
+                setShowCreateForm(!showCreateForm);
+                if (showCreateForm) {
+                  setEditingSemesterId(null);
+                  setNewSemesterName('');
+                  setStartDate('');
+                  setEndDate('');
+                }
+              }} 
+              className="w-full sm:w-auto"
+            >
+              {showCreateForm ? 'Cancel' : 'Create Semester'}
+            </Button>
+          </div>
         </div>
 
         {/* Create Semester Form */}
         {showCreateForm && (
           <Card className="shadow-medium">
             <CardHeader>
-              <CardTitle>Create New Semester</CardTitle>
-              <CardDescription>Set up a new semester with subjects and faculty assignments</CardDescription>
+              <CardTitle>{editingSemesterId ? 'Edit Semester' : 'Create New Semester'}</CardTitle>
+              <CardDescription>
+                {editingSemesterId ? 'Review and update semester details' : 'Set up a new semester with subjects and faculty assignments'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
@@ -217,7 +268,7 @@ export default function AdminDashboard() {
               </div>
 
               <Button onClick={handleCreateSemester} className="w-full">
-                Create Semester
+                {editingSemesterId ? 'Update Semester' : 'Create Semester'}
               </Button>
             </CardContent>
           </Card>

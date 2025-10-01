@@ -13,7 +13,7 @@ import { BookOpen, Calendar, CheckCircle2 } from 'lucide-react';
 
 export default function FacultyDashboard() {
   const { user } = useAuth();
-  const { semesters, students, updateSubjectPeriods, markAttendance, getActiveSemester } = useAttendance();
+  const { semesters, students, updateSubjectPeriods, markAttendance, getActiveSemester, isPeriodSubmitted } = useAttendance();
   
   const [selectedSemester, setSelectedSemester] = useState<string>('');
   const [selectedSubject, setSelectedSubject] = useState<string>('');
@@ -40,6 +40,10 @@ export default function FacultyDashboard() {
   const currentSemester = semesters.find((s) => s.id === selectedSemester);
   const facultySubjects = currentSemester?.subjects.filter((sub) => sub.facultyId === user?.id) || [];
   const currentSubject = facultySubjects.find((s) => s.id === selectedSubject);
+  
+  const isCurrentPeriodSubmitted = selectedSemester && selectedSubject && selectedPeriod
+    ? isPeriodSubmitted(selectedSemester, selectedSubject, selectedPeriod)
+    : false;
 
   const handleSetTotalPeriods = () => {
     if (!selectedSemester || !selectedSubject) {
@@ -57,6 +61,11 @@ export default function FacultyDashboard() {
       return;
     }
 
+    if (isCurrentPeriodSubmitted) {
+      toast.error('Attendance already submitted for this period. Cannot modify.');
+      return;
+    }
+
     const records = students.map((student) => ({
       studentId: student.id,
       subjectId: selectedSubject,
@@ -67,7 +76,7 @@ export default function FacultyDashboard() {
     }));
 
     markAttendance(records);
-    toast.success(`Attendance marked for Period ${selectedPeriod}`);
+    toast.success(`Attendance marked for Period ${selectedPeriod}. This period is now locked.`);
   };
 
   const toggleAll = (checked: boolean) => {
@@ -178,7 +187,11 @@ export default function FacultyDashboard() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="period-select">Period Number</Label>
-                  <Select value={selectedPeriod.toString()} onValueChange={(v) => setSelectedPeriod(parseInt(v))}>
+                  <Select 
+                    value={selectedPeriod.toString()} 
+                    onValueChange={(v) => setSelectedPeriod(parseInt(v))}
+                    disabled={isCurrentPeriodSubmitted}
+                  >
                     <SelectTrigger id="period-select">
                       <SelectValue />
                     </SelectTrigger>
@@ -199,9 +212,19 @@ export default function FacultyDashboard() {
                     type="date"
                     value={attendanceDate}
                     onChange={(e) => setAttendanceDate(e.target.value)}
+                    disabled={isCurrentPeriodSubmitted}
                   />
                 </div>
               </div>
+
+              {isCurrentPeriodSubmitted && (
+                <div className="p-4 bg-secondary/10 border border-secondary rounded-lg flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-secondary" />
+                  <p className="text-sm font-medium">
+                    Attendance already submitted for this period. Selection is locked.
+                  </p>
+                </div>
+              )}
 
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-3">
@@ -220,14 +243,16 @@ export default function FacultyDashboard() {
               </div>
 
               {/* Bulk Actions */}
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => toggleAll(true)} className="flex-1">
-                  Mark All Present
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toggleAll(false)} className="flex-1">
-                  Mark All Absent
-                </Button>
-              </div>
+              {!isCurrentPeriodSubmitted && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => toggleAll(true)} className="flex-1">
+                    Mark All Present
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => toggleAll(false)} className="flex-1">
+                    Mark All Absent
+                  </Button>
+                </div>
+              )}
 
               {/* Student List */}
               <div className="border rounded-lg">
@@ -247,13 +272,14 @@ export default function FacultyDashboard() {
                         <Checkbox
                           id={`student-${student.id}`}
                           checked={attendanceState[student.id]}
+                          disabled={isCurrentPeriodSubmitted}
                           onCheckedChange={(checked) =>
                             setAttendanceState({ ...attendanceState, [student.id]: checked as boolean })
                           }
                         />
                         <Label
                           htmlFor={`student-${student.id}`}
-                          className={`cursor-pointer ${
+                          className={`${!isCurrentPeriodSubmitted && 'cursor-pointer'} ${
                             attendanceState[student.id] ? 'text-secondary' : 'text-muted-foreground'
                           }`}
                         >
@@ -265,9 +291,14 @@ export default function FacultyDashboard() {
                 </div>
               </div>
 
-              <Button onClick={handleSubmitAttendance} className="w-full h-11" size="lg">
+              <Button 
+                onClick={handleSubmitAttendance} 
+                className="w-full h-11" 
+                size="lg"
+                disabled={isCurrentPeriodSubmitted}
+              >
                 <CheckCircle2 className="w-5 h-5 mr-2" />
-                Submit Attendance
+                {isCurrentPeriodSubmitted ? 'Attendance Locked' : 'Submit Attendance'}
               </Button>
             </CardContent>
           </Card>
